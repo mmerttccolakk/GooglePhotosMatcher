@@ -33,8 +33,11 @@ def mainProcess(browserPath, window, editedW):
             window['-PROGRESS_BAR-'].update(progress, visible=True)
 
             #SEARCH MEDIA ASSOCIATED TO JSON
-
-            titleOriginal = data['title']  # Store metadata into vars
+            try:
+                titleOriginal = data['title']  # Store metadata into vars
+            except KeyError as error:
+                print('Title not found in metadata')
+                errorCounter += 1
 
             try:
                 title = searchMedia(path, titleOriginal, mediaMoved, nonEditedMediaPath, editedWord)
@@ -46,21 +49,29 @@ def mainProcess(browserPath, window, editedW):
 
             filepath = path + "\\" + title
             if title == "None":
-                print(titleOriginal + " not found")
+                try:
+                    print(titleOriginal + " not found")
+                except Exception as e:
+                    print('Unknow Title not found')
                 errorCounter += 1
                 continue
 
             # METADATA EDITION
-            timeStamp = int(data['photoTakenTime']['timestamp'])  # Get creation time
+            try:
+                timeStamp = int(data['photoTakenTime']['timestamp'])  # Get creation time
+            except KeyError:
+                timeStamp = 946681200 # 1 Jan 2000 0H00
+                print("No photoTaken time found in metadata")
+                errorCounter += 1
+                
             print(filepath)
 
             if title.rsplit('.', 1)[1].casefold() in piexifCodecs:  # If EXIF is supported
                 try:
-                    im = Image.open(filepath)
-                    rgb_im = im.convert('RGB')
-                    os.replace(filepath, filepath.rsplit('.', 1)[0] + ".jpg")
-                    filepath = filepath.rsplit('.', 1)[0] + ".jpg"
-                    rgb_im.save(filepath)
+                    with Image.open(filepath) as im:
+                        rgb_im = im.convert('RGB')
+                        rgb_im.save(filepath.rsplit('.', 1)[0] + ".jpg")
+                        filepath = filepath.rsplit('.', 1)[0] + ".jpg"
 
                 except ValueError as e:
                     print("Error converting to JPG in " + title)
